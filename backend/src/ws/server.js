@@ -299,6 +299,7 @@ export function attachWebSocketServer(server) {
                     homeScore: match.homeScore,
                     awayScore: match.awayScore,
                 },
+     
             });
         }
     }
