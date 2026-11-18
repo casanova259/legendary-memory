@@ -130,7 +130,7 @@ async function createMatch(seedMatch) {
   const responsePayload = await response.json();
 
 
-  return responsePayload;
+  return responsePayload.data || responsePayload;
 }
 
 async function insertCommentary(matchId, entry) {

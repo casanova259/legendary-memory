@@ -173,6 +173,12 @@ npm run lint
 ```
 Runs TypeScript compiler diagnostics (`tsc --noEmit`) to verify type safety across the frontend.
 
+### 6. Run Automated Tests
+```bash
+npm test
+```
+Runs the automated test suite across all API routes, validation rules, security policies, and WebSocket lifecycles.
+
 ---
 
 ## Database Management (Backend)
@@ -203,12 +209,15 @@ npm run seed
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
-| `GET` | `/` | Health check route (`"Hello from Express Server"`) |
+| `GET` | `/` | API status and version info |
+| `GET` | `/healthz` | Process liveness probe (200 OK) |
+| `GET` | `/ready` | Database readiness probe (`SELECT 1`) |
 | `GET` | `/matches?limit=50` | Retrieve recent matches |
+| `GET` | `/matches/:id` | Retrieve a single match by ID (404 if not found) |
 | `POST` | `/matches` | Create a new match (broadcasts `match_created`) |
-| `PATCH`| `/matches/:id/score` | Update match score (broadcasts `score_update`) |
-| `GET` | `/matches/:id/commentary?limit=100` | Fetch match commentary feed |
-| `POST` | `/matches/:id/commentary` | Add commentary item (broadcasts `commentary` to match subscribers) |
+| `PATCH`| `/matches/:id/score` | Update match score (validates non-negative integers, broadcasts `score_update`) |
+| `GET` | `/matches/:id/commentary?limit=100` | Fetch match commentary feed (404 if match not found) |
+| `POST` | `/matches/:id/commentary` | Add commentary item (validates match existence, broadcasts to subscribers) |
 
 ### WebSocket Server (`/ws`)
 

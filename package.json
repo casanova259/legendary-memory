@@ -10,6 +10,8 @@
     "build": "npm run build --prefix frontend",
     "build:frontend": "npm run build --prefix frontend",
     "lint": "npm run lint --prefix frontend --if-present && npm run lint --prefix backend --if-present",
+    "test": "npm --prefix backend run test",
+    "test:backend": "npm --prefix backend run test",
     "install:all": "npm install && npm --prefix frontend install --install-links && npm --prefix backend install --install-links"
   },
   "devDependencies": {

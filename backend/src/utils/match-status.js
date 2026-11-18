@@ -1,4 +1,6 @@
 import { MATCH_STATUS } from "../validation/matches.js";
+import { matches } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 export function getMatchStatus(startTime, endTime, now = new Date()) {
   const start = new Date(startTime);
@@ -19,14 +21,58 @@ export function getMatchStatus(startTime, endTime, now = new Date()) {
   return MATCH_STATUS.LIVE;
 }
 
-export async function syncMatchStatus(match, updateStatus) {
-  const nextStatus = getMatchStatus(match.startTime, match.endTime);
-  if (!nextStatus) {
-    return match.status;
+export async function syncMatchStatus(match, dbInstance) {
+  if (!match || !match.startTime || !match.endTime) {
+    return match;
   }
-  if (match.status !== nextStatus) {
-    await updateStatus(nextStatus);
-    match.status = nextStatus;
+
+  const computed = getMatchStatus(match.startTime, match.endTime);
+  if (computed && computed !== match.status && dbInstance) {
+    try {
+      await dbInstance
+        .update(matches)
+        .set({ status: computed })
+        .where(eq(matches.id, match.id));
+      match.status = computed;
+    } catch (err) {
+      console.error(`Failed to sync status for match ${match.id}:`, err);
+    }
   }
-  return match.status;
+
+  return match;
+}
+
+export async function syncMatchesStatuses(matchesList, dbInstance) {
+  if (!Array.isArray(matchesList) || matchesList.length === 0) {
+    return matchesList;
+  }
+
+  const now = new Date();
+  const updatePromises = [];
+
+  for (const match of matchesList) {
+    if (!match.startTime || !match.endTime) continue;
+    const computed = getMatchStatus(match.startTime, match.endTime, now);
+
+    if (computed && computed !== match.status) {
+      match.status = computed;
+      if (dbInstance) {
+        updatePromises.push(
+          dbInstance
+            .update(matches)
+            .set({ status: computed })
+            .where(eq(matches.id, match.id))
+            .catch((err) => {
+              console.error(`Failed to update status for match ${match.id}:`, err);
+            })
+        );
+      }
+    }
+  }
+
+  if (updatePromises.length > 0) {
+    await Promise.allSettled(updatePromises);
+  }
+
+  return matchesList;
 }

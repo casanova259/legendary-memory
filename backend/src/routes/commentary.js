@@ -5,8 +5,7 @@ import {
     listCommentaryQuerySchema,
 } from "../validation/commentary.js";
 import { db } from "../db/db.js";
-import { commentary } from "../db/schema.js";
-
+import { commentary, matches } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 
 const MAX_LIMIT = 100;
@@ -15,12 +14,13 @@ export const commentaryRouter = Router({
     mergeParams: true,
 });
 
-commentaryRouter.get("/", async (req, res) => {
+// GET /matches/:id/commentary
+commentaryRouter.get("/", async (req, res, next) => {
     const paramsResult = matchIdParamSchema.safeParse(req.params);
 
     if (!paramsResult.success) {
         return res.status(400).json({
-            error: "Invalid match ID.",
+            error: "Invalid match ID",
             details: paramsResult.error.issues,
         });
     }
@@ -29,15 +29,28 @@ commentaryRouter.get("/", async (req, res) => {
 
     if (!queryResult.success) {
         return res.status(400).json({
-            error: "Invalid query parameters.",
+            error: "Invalid query parameters",
             details: queryResult.error.issues,
         });
     }
 
     try {
         const { id: matchId } = paramsResult.data;
-        const { limit = 100 } = queryResult.data;
 
+        // Verify match exists
+        const [existingMatch] = await db
+            .select({ id: matches.id })
+            .from(matches)
+            .where(eq(matches.id, matchId))
+            .limit(1);
+
+        if (!existingMatch) {
+            return res.status(404).json({
+                error: "Match not found",
+            });
+        }
+
+        const { limit = 100 } = queryResult.data;
         const safeLimit = Math.min(limit, MAX_LIMIT);
 
         const results = await db
@@ -51,22 +64,17 @@ commentaryRouter.get("/", async (req, res) => {
             data: results,
         });
     } catch (error) {
-        console.error("Failed to fetch commentary:", error);
-
-        return res.status(500).json({
-            error: "Failed to fetch commentary.",
-        });
+        next(error);
     }
 });
 
-commentaryRouter.post("/", async (req, res) => {
+// POST /matches/:id/commentary
+commentaryRouter.post("/", async (req, res, next) => {
     const paramsResult = matchIdParamSchema.safeParse(req.params);
-
-    console.log("params =", req.params);
 
     if (!paramsResult.success) {
         return res.status(400).json({
-            error: "Invalid match ID.",
+            error: "Invalid match ID",
             details: paramsResult.error.issues,
         });
     }
@@ -75,22 +83,36 @@ commentaryRouter.post("/", async (req, res) => {
 
     if (!bodyResult.success) {
         return res.status(400).json({
-            error: "Invalid commentary payload.",
+            error: "Invalid commentary payload",
             details: bodyResult.error.issues,
         });
     }
 
     try {
+        const { id: matchId } = paramsResult.data;
+
+        // Verify match exists before inserting
+        const [existingMatch] = await db
+            .select({ id: matches.id })
+            .from(matches)
+            .where(eq(matches.id, matchId))
+            .limit(1);
+
+        if (!existingMatch) {
+            return res.status(404).json({
+                error: "Match not found",
+            });
+        }
+
         const [result] = await db
             .insert(commentary)
             .values({
-                matchId: paramsResult.data.id,
+                matchId,
                 ...bodyResult.data,
             })
             .returning();
 
         if (res.app.locals.broadcastCommentary) {
-            console.log("CALLING BROADCAST");
             res.app.locals.broadcastCommentary(result.matchId, result);
         }
 
@@ -98,10 +120,12 @@ commentaryRouter.post("/", async (req, res) => {
             data: result,
         });
     } catch (error) {
-        console.error("Failed to create commentary:", error);
-
-        return res.status(500).json({
-            error: "Failed to create commentary.",
-        });
+        // Handle Postgres foreign key constraint violation code
+        if (error?.code === "23503") {
+            return res.status(404).json({
+                error: "Match not found",
+            });
+        }
+        next(error);
     }
 });

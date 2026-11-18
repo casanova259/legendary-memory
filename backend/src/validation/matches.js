@@ -7,9 +7,33 @@ export const MATCH_STATUS = {
     FINISHED: "finished",
 };
 
-const isValidIsoDateString = (value) => {
+export const isValidIsoDateString = (value) => {
+    if (typeof value !== "string") return false;
+
+    // Strict ISO 8601 format: YYYY-MM-DDTHH:mm:ss[.sss](Z|±HH:mm)
+    const isoRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
+    const match = value.match(isoRegex);
+    if (!match) return false;
+
+    const [_, yearStr, monthStr, dayStr, hourStr, minStr, secStr] = match;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const hour = Number(hourStr);
+    const minute = Number(minStr);
+    const second = Number(secStr);
+
+    if (month < 1 || month > 12) return false;
+    if (hour < 0 || hour > 23) return false;
+    if (minute < 0 || minute > 59) return false;
+    if (second < 0 || second > 59) return false;
+
+    // Verify calendar days (including leap years)
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    if (day < 1 || day > daysInMonth) return false;
+
     const date = new Date(value);
-    return !Number.isNaN(date.getTime()) && date.toISOString() === value;
+    return !Number.isNaN(date.getTime());
 };
 
 export const listMatchesQuerySchema = z.object({
