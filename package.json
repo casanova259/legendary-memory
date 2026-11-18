@@ -1,0 +1,18 @@
+{
+  "name": "livsportz-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LivSportz Full-Stack Real-Time Sports Tracking Monorepo",
+  "scripts": {
+    "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "lint": "npm run lint --prefix frontend --if-present && npm run lint --prefix backend --if-present",
+    "install:all": "npm install && npm --prefix frontend install --install-links && npm --prefix backend install --install-links"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}
