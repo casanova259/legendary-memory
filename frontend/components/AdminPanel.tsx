@@ -20,7 +20,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onMatchCreated,
   onRolePromoted,
 }) => {
-  const [activeTab, setActiveTab] = useState<'match' | 'users' | 'bootstrap'>('match');
+  const [activeTab, setActiveTab] = useState<'match' | 'users' | 'bootstrap'>(
+    currentRole === 'admin' ? 'match' : 'bootstrap'
+  );
+
+  useEffect(() => {
+    if (currentRole === 'admin' && activeTab === 'bootstrap') {
+      setActiveTab('users');
+    } else if (currentRole !== 'admin' && activeTab !== 'bootstrap') {
+      setActiveTab('bootstrap');
+    }
+  }, [currentRole]);
 
   // Match Creation Form State
   const [sport, setSport] = useState('Football');
@@ -337,7 +347,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
           <form onSubmit={handleBootstrap} className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Bootstrap Secret</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-gray-700">Bootstrap Secret</label>
+                <button
+                  type="button"
+                  onClick={() => setBootstrapSecret('super-secret-admin-bootstrap-livsportz-2026')}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                >
+                  Paste Default Secret
+                </button>
+              </div>
               <input
                 type="password"
                 required

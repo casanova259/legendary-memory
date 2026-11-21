@@ -60,24 +60,29 @@ export const AuthBar: React.FC<AuthBarProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+      {/* Clickable Role Badge */}
       {isLoadingUser ? (
         <span className="text-xs font-mono text-gray-600 animate-pulse">Syncing role...</span>
       ) : (
-        <div className="flex items-center gap-2">
+        <button
+          onClick={onToggleAdmin}
+          title="Click to open Admin & Role panel"
+          className="flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all"
+        >
           {activeRole && (
             <span
-              className={`text-[11px] font-black tracking-wider uppercase px-2.5 py-0.5 rounded-full border-2 ${
+              className={`text-[11px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full border-2 shadow-hard-sm ${
                 roleColors[activeRole] || roleColors.viewer
               }`}
             >
-              {activeRole}
+              {activeRole} ⚙️
             </span>
           )}
-        </div>
+        </button>
       )}
 
-      {/* Scorer Controls Toggle (Admins or Scorers) */}
+      {/* Scorer Controls Toggle (Admins and Scorers) */}
       {(activeRole === 'admin' || activeRole === 'scorer') && (
         <button
           onClick={onToggleScorer}
@@ -89,21 +94,38 @@ export const AuthBar: React.FC<AuthBarProps> = ({
         </button>
       )}
 
-      {/* Admin Console Toggle */}
-      {activeRole === 'admin' && (
-        <button
-          onClick={onToggleAdmin}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
-            isAdminOpen ? 'bg-brand-blue text-white' : 'bg-white hover:bg-blue-50'
-          }`}
-        >
-          {isAdminOpen ? '✕ Close Admin' : '🛠️ Admin Panel'}
-        </button>
-      )}
+      {/* Admin Console Toggle (Always visible when signed in) */}
+      <button
+        onClick={onToggleAdmin}
+        className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
+          isAdminOpen
+            ? 'bg-brand-blue text-white'
+            : activeRole === 'admin'
+            ? 'bg-white hover:bg-blue-50 text-brand-dark'
+            : 'bg-white hover:bg-yellow-100 text-brand-dark border-dashed'
+        }`}
+      >
+        {isAdminOpen
+          ? '✕ Close Admin'
+          : activeRole === 'admin'
+          ? '🛠️ Admin Console'
+          : '🛠️ Admin / Setup'}
+      </button>
 
-      {/* User Account Menu */}
-      <div className="flex items-center gap-2 pl-2 border-l-2 border-black">
-        <UserButton showName />
+      {/* User profile & email */}
+      <div className="flex items-center gap-2 bg-white/60 border border-black/20 rounded-xl px-2.5 py-1">
+        {appUser?.email && (
+          <span className="text-xs font-medium text-gray-700 hidden sm:inline max-w-[160px] truncate">
+            {appUser.email}
+          </span>
+        )}
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: 'w-7 h-7 border-2 border-black',
+            },
+          }}
+        />
       </div>
     </div>
   );
