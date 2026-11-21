@@ -7,6 +7,7 @@ import {
 import { db } from "../db/db.js";
 import { commentary, matches } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const MAX_LIMIT = 100;
 
@@ -68,8 +69,8 @@ commentaryRouter.get("/", async (req, res, next) => {
     }
 });
 
-// POST /matches/:id/commentary
-commentaryRouter.post("/", async (req, res, next) => {
+// POST /matches/:id/commentary (Admin or Scorer)
+commentaryRouter.post("/", requireAuth, requireRole("admin", "scorer"), async (req, res, next) => {
     const paramsResult = matchIdParamSchema.safeParse(req.params);
 
     if (!paramsResult.success) {

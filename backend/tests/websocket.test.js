@@ -6,6 +6,7 @@ import WebSocket from "ws";
 import { app } from "../src/app.js";
 import { attachWebSocketServer } from "../src/ws/server.js";
 import request from "supertest";
+import { ensureTestUsers, adminHeaders } from "./helpers.js";
 
 describe("WebSocket Lifecycle & Realtime Broadcasting", () => {
     let server;
@@ -16,9 +17,12 @@ describe("WebSocket Lifecycle & Realtime Broadcasting", () => {
     let validMatchId;
 
     before(async () => {
+        await ensureTestUsers();
+
         // Create an active match in DB for subscription tests
         const res = await request(app)
             .post("/matches")
+            .set(adminHeaders)
             .send({
                 sport: "Tennis",
                 homeTeam: "Alcaraz",

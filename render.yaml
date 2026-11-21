@@ -15,6 +15,12 @@ services:
         value: 10000
       - key: DATABASE_URL
         sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: ADMIN_BOOTSTRAP_SECRET
+        sync: false
       - key: ARCJET_KEY
         sync: false
       - key: ARCJET_ENV
@@ -41,6 +47,8 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
       - key: VITE_API_BASE_URL
         fromService:
           type: web

@@ -19,6 +19,48 @@ export const matchStatusEnum = pgEnum("match_status", [
 ]);
 
 /**
+ * User Role Enum
+ */
+export const userRoleEnum = pgEnum("user_role", [
+    "viewer",
+    "admin",
+    "scorer",
+]);
+
+/**
+ * Users Table (Local application user synchronized with Clerk)
+ */
+export const users = pgTable(
+    "users",
+    {
+        id: serial("id").primaryKey(),
+
+        clerkId: text("clerk_id").notNull().unique(),
+
+        email: text("email"),
+
+        displayName: text("display_name"),
+
+        role: userRoleEnum("role").notNull().default("viewer"),
+
+        createdAt: timestamp("created_at", {
+            withTimezone: true,
+        })
+            .defaultNow()
+            .notNull(),
+
+        updatedAt: timestamp("updated_at", {
+            withTimezone: true,
+        })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        index("users_clerk_id_idx").on(table.clerkId),
+    ]
+);
+
+/**
  * Matches Table
  */
 export const matches = pgTable(

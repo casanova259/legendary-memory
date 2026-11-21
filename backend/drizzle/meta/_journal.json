@@ -15,6 +15,13 @@
       "when": 1794983689714,
       "tag": "0001_special_iron_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795242648034,
+      "tag": "0002_icy_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }

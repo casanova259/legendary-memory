@@ -100,3 +100,25 @@ export type WSMessage =
   | WSMessageSubscriptions
   | WSMessageSubscribedAll
   | WSMessageUnsubscribedAll;
+
+export type UserRole = 'viewer' | 'admin' | 'scorer';
+
+export interface AppUser {
+  id: number;
+  clerkId: string;
+  email: string | null;
+  displayName: string | null;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserListResponse {
+  data: AppUser[];
+  meta: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+

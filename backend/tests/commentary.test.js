@@ -1,15 +1,21 @@
 process.env.NODE_ENV = "test";
-import { describe, it } from "node:test";
+import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import { app } from "../src/app.js";
+import { ensureTestUsers, adminHeaders } from "./helpers.js";
 
 describe("Commentary API Endpoints", () => {
     let testMatchId = null;
 
+    before(async () => {
+        await ensureTestUsers();
+    });
+
     it("Setup: Create a match to receive commentary", async () => {
         const res = await request(app)
             .post("/matches")
+            .set(adminHeaders)
             .send({
                 sport: "Cricket",
                 homeTeam: "India",
@@ -40,6 +46,7 @@ describe("Commentary API Endpoints", () => {
 
         const res = await request(app)
             .post(`/matches/${testMatchId}/commentary`)
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 201);
@@ -69,6 +76,7 @@ describe("Commentary API Endpoints", () => {
 
         const res = await request(app)
             .post("/matches/999999999/commentary")
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 404);
@@ -94,6 +102,7 @@ describe("Commentary API Endpoints", () => {
 
         const res = await request(app)
             .post(`/matches/${testMatchId}/commentary`)
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 400);

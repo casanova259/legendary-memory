@@ -1,11 +1,16 @@
 process.env.NODE_ENV = "test";
-import { describe, it } from "node:test";
+import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import { app } from "../src/app.js";
+import { ensureTestUsers, adminHeaders } from "./helpers.js";
 
 describe("Match API Endpoints", () => {
     let createdMatchId = null;
+
+    before(async () => {
+        await ensureTestUsers();
+    });
 
     it("POST /matches - should create a match with valid ISO date", async () => {
         const payload = {
@@ -20,6 +25,7 @@ describe("Match API Endpoints", () => {
 
         const res = await request(app)
             .post("/matches")
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 201);
@@ -43,6 +49,7 @@ describe("Match API Endpoints", () => {
 
         const res = await request(app)
             .post("/matches")
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 201);
@@ -61,6 +68,7 @@ describe("Match API Endpoints", () => {
 
         const res = await request(app)
             .post("/matches")
+            .set(adminHeaders)
             .send(payload);
 
         assert.equal(res.status, 400);
@@ -106,6 +114,7 @@ describe("Match API Endpoints", () => {
         assert.ok(createdMatchId, "createdMatchId must exist");
         const res = await request(app)
             .patch(`/matches/${createdMatchId}/score`)
+            .set(adminHeaders)
             .send({ homeScore: 2, awayScore: 1 });
 
         assert.equal(res.status, 200);
@@ -118,6 +127,7 @@ describe("Match API Endpoints", () => {
         assert.ok(createdMatchId, "createdMatchId must exist");
         const res = await request(app)
             .patch(`/matches/${createdMatchId}/score`)
+            .set(adminHeaders)
             .send({ homeScore: -1, awayScore: 3 });
 
         assert.equal(res.status, 400);
@@ -128,6 +138,7 @@ describe("Match API Endpoints", () => {
         assert.ok(createdMatchId, "createdMatchId must exist");
         const res = await request(app)
             .patch(`/matches/${createdMatchId}/score`)
+            .set(adminHeaders)
             .send({ homeScore: 1.5, awayScore: 2 });
 
         assert.equal(res.status, 400);
@@ -137,6 +148,7 @@ describe("Match API Endpoints", () => {
     it("PATCH /matches/:id/score - should return 404 for non-existent match", async () => {
         const res = await request(app)
             .patch("/matches/999999999/score")
+            .set(adminHeaders)
             .send({ homeScore: 1, awayScore: 0 });
 
         assert.equal(res.status, 404);

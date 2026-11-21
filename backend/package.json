@@ -23,12 +23,14 @@
   "dependencies": {
     "@arcjet/inspect": "^1.5.0",
     "@arcjet/node": "^1.5.0",
+    "@clerk/express": "^2.1.96",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "pg": "^8.21.0",
+    "svix": "^2.11.0",
     "ws": "^8.21.0",
     "zod": "^4.4.3"
   },

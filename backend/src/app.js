@@ -2,10 +2,24 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { clerkMiddleware } from "@clerk/express";
 import { matchRouter } from "./routes/matches.js";
 import { commentaryRouter } from "./routes/commentary.js";
+import { authRouter } from "./routes/auth.js";
+import { adminRouter } from "./routes/admin.js";
+import { webhookRouter } from "./routes/webhooks.js";
 import { securityMiddleWare } from "./arcjet.js";
 import { pool } from "./db/db.js";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+// Safe development/test Clerk fallback credentials to allow public endpoints and local testing without hard crash
+if (!process.env.CLERK_PUBLISHABLE_KEY && (process.env.NODE_ENV === "test" || !isProduction)) {
+    process.env.CLERK_PUBLISHABLE_KEY = "pk_test_" + Buffer.from("livsportz.clerk.accounts.dev$").toString("base64");
+}
+if (!process.env.CLERK_SECRET_KEY && (process.env.NODE_ENV === "test" || !isProduction)) {
+    process.env.CLERK_SECRET_KEY = "sk_test_mocksecretkey1234567890abcdef12345678";
+}
 
 export const app = express();
 
@@ -18,8 +32,6 @@ app.use(
 );
 
 // 2. CORS Configuration
-const isProduction = process.env.NODE_ENV === "production";
-
 const configuredOrigins = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
@@ -59,10 +71,36 @@ export const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// 3. Body Parser
-app.use(express.json());
+// 3. Body Parser (with rawBody capture for webhook signature verification)
+app.use(
+    express.json({
+        verify: (req, res, buf) => {
+            req.rawBody = buf;
+        },
+    })
+);
 
-// 4. Liveness & Readiness Probes (Mounted before Arcjet to prevent rate-limiting orchestrators)
+// 4. Clerk Authentication Middleware
+const clerkPublishableKey =
+    process.env.CLERK_PUBLISHABLE_KEY ||
+    (process.env.NODE_ENV === "test" || !isProduction
+        ? "pk_test_" + Buffer.from("livsportz.clerk.accounts.dev$").toString("base64")
+        : undefined);
+
+const clerkSecretKey =
+    process.env.CLERK_SECRET_KEY ||
+    (process.env.NODE_ENV === "test" ? "sk_test_mockclerksecretkey12345" : undefined);
+
+if (clerkPublishableKey) {
+    app.use(
+        clerkMiddleware({
+            publishableKey: clerkPublishableKey,
+            secretKey: clerkSecretKey,
+        })
+    );
+}
+
+// 5. Liveness & Readiness Probes (Mounted before Arcjet to prevent rate-limiting orchestrators)
 app.get("/healthz", (req, res) => {
     res.status(200).json({
         status: "ok",
@@ -96,10 +134,13 @@ app.get("/", (req, res) => {
     });
 });
 
-// 5. Arcjet Security Middleware (Rate limiting, bot detection, shield)
+// 6. Arcjet Security Middleware (Rate limiting, bot detection, shield)
 app.use(securityMiddleWare());
 
-// 6. Protected Business Routes
+// 7. Business & Auth Routes
+app.use("/webhooks", webhookRouter);
+app.use("/auth", authRouter);
+app.use("/admin", adminRouter);
 app.use("/matches", matchRouter);
 app.use("/matches/:id/commentary", commentaryRouter);
 

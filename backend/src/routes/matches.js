@@ -13,6 +13,7 @@ import {
     syncMatchStatus,
     syncMatchesStatuses,
 } from "../utils/match-status.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 export const matchRouter = Router();
 
@@ -78,8 +79,8 @@ matchRouter.get("/:id", async (req, res, next) => {
     }
 });
 
-// POST /matches
-matchRouter.post("/", async (req, res, next) => {
+// POST /matches (Admin only)
+matchRouter.post("/", requireAuth, requireRole("admin"), async (req, res, next) => {
     const parsed = createMatchSchema.safeParse(req.body);
 
     if (!parsed.success) {
@@ -117,8 +118,8 @@ matchRouter.post("/", async (req, res, next) => {
     }
 });
 
-// PATCH /matches/:id/score
-matchRouter.patch("/:id/score", async (req, res, next) => {
+// PATCH /matches/:id/score (Admin or Scorer)
+matchRouter.patch("/:id/score", requireAuth, requireRole("admin", "scorer"), async (req, res, next) => {
     const paramsParsed = matchIdParamSchema.safeParse(req.params);
 
     if (!paramsParsed.success) {
