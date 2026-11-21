@@ -11,18 +11,10 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
-if (CLERK_PUBLISHABLE_KEY) {
-  root.render(
-    <React.StrictMode>
-      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-        <App hasClerkKey={true} />
-      </ClerkProvider>
-    </React.StrictMode>
-  );
-} else {
-  root.render(
-    <React.StrictMode>
-      <App hasClerkKey={false} />
-    </React.StrictMode>
-  );
-}
+root.render(
+  <React.StrictMode>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+      <App />
+    </ClerkProvider>
+  </React.StrictMode>
+);

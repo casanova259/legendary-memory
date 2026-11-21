@@ -6,7 +6,9 @@ export const API_BASE_URL: string =
 export const WS_BASE_URL: string =
   (import.meta.env.VITE_WS_BASE_URL as string) || DEFAULT_WS_BASE_URL;
 export const CLERK_PUBLISHABLE_KEY: string =
-  (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string) || "";
+  (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string) ||
+  (import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as string) ||
+  "pk_test_c3VtbWFyeS1idWNrLTczNDMuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
 // Exponential backoff configuration
 export const MAX_RECONNECT_DELAY = 30000; // 30 seconds

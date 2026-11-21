@@ -13,6 +13,11 @@ import { pool } from "./db/db.js";
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Support both CLERK_PUBLISHABLE_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    process.env.CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+}
+
 // Safe development/test Clerk fallback credentials to allow public endpoints and local testing without hard crash
 if (!process.env.CLERK_PUBLISHABLE_KEY && (process.env.NODE_ENV === "test" || !isProduction)) {
     process.env.CLERK_PUBLISHABLE_KEY = "pk_test_" + Buffer.from("livsportz.clerk.accounts.dev$").toString("base64");

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { useMatchData } from './hooks/useMatchData';
 import { MatchCard } from './components/MatchCard';
 import { LiveFeed } from './components/LiveFeed';
@@ -8,20 +8,11 @@ import { AuthBar } from './components/AuthBar';
 import { ScorerPanel } from './components/ScorerPanel';
 import { AdminPanel } from './components/AdminPanel';
 import { API_BASE_URL, WS_BASE_URL } from './constants';
-import { AppUser, Match, UserRole } from './types';
+import { AppUser, UserRole } from './types';
 import { fetchCurrentUser } from './services/api';
 
-interface AppProps {
-  hasClerkKey?: boolean;
-}
-
-interface AppInnerProps {
-  hasClerkKey: boolean;
-  getToken: () => Promise<string | null>;
-  isSignedIn: boolean;
-}
-
-const AppInner: React.FC<AppInnerProps> = ({ hasClerkKey, getToken, isSignedIn }) => {
+const App: React.FC = () => {
+  const { getToken, isSignedIn } = useAuth();
   const pageSize = 6;
   const [currentPage, setCurrentPage] = useState(1);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
@@ -105,7 +96,6 @@ const AppInner: React.FC<AppInnerProps> = ({ hasClerkKey, getToken, isSignedIn }
 
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <AuthBar
-              hasClerkKey={hasClerkKey}
               appUser={appUser}
               isLoadingUser={isLoadingUser}
               activeRole={activeRole}
@@ -292,13 +282,13 @@ const AppInner: React.FC<AppInnerProps> = ({ hasClerkKey, getToken, isSignedIn }
                 <ul className="list-disc list-inside space-y-1">
                   <li>REST API: <code className="bg-gray-100 px-1 rounded">{API_BASE_URL}</code></li>
                   <li>WebSocket: <code className="bg-gray-100 px-1 rounded">{WS_BASE_URL}</code></li>
-                  <li>Clerk Mode: <code className="bg-gray-100 px-1 rounded">{hasClerkKey ? 'Connected' : 'Local Demo'}</code></li>
+                  <li>Clerk Status: <code className="bg-gray-100 px-1 rounded">{isSignedIn ? 'Signed In' : 'Public Viewer'}</code></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-bold text-black mb-1.5">How to Bootstrap First Admin</h4>
                 <p className="mb-1">
-                  1. Click <strong>Sign Up</strong> / <strong>Sign In</strong> to authenticate via Clerk.
+                  1. Click <strong>Sign Up</strong> / <strong>Sign In</strong> in the header to authenticate.
                 </p>
                 <p className="mb-1">
                   2. Open the <strong>Admin Panel</strong> tab <em>"Admin Bootstrap"</em>.
@@ -313,18 +303,6 @@ const AppInner: React.FC<AppInnerProps> = ({ hasClerkKey, getToken, isSignedIn }
       </div>
     </div>
   );
-};
-
-const AuthenticatedApp: React.FC = () => {
-  const { getToken, isSignedIn } = useAuth();
-  return <AppInner hasClerkKey={true} getToken={getToken} isSignedIn={!!isSignedIn} />;
-};
-
-const App: React.FC<AppProps> = ({ hasClerkKey = false }) => {
-  if (hasClerkKey) {
-    return <AuthenticatedApp />;
-  }
-  return <AppInner hasClerkKey={false} getToken={async () => null} isSignedIn={false} />;
 };
 
 export default App;
