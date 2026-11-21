@@ -4,7 +4,7 @@ import {
   SignUpButton,
   UserButton,
   useAuth,
-} from '@clerk/clerk-react';
+} from '@clerk/react';
 import { AppUser, UserRole } from '../types';
 
 interface AuthBarProps {
@@ -103,7 +103,7 @@ export const AuthBar: React.FC<AuthBarProps> = ({
 
       {/* User Account Menu */}
       <div className="flex items-center gap-2 pl-2 border-l-2 border-black">
-        <UserButton showName afterSignOutUrl="/" />
+        <UserButton showName />
       </div>
     </div>
   );
