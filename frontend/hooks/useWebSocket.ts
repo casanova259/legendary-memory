@@ -19,7 +19,13 @@ export const useWebSocket = (
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttempts = useRef(0);
   const isIntentionalClose = useRef(false);
-  const subscribedMatchIdsRef = useRef(new Set<string>());
+  const isUnmounted = useRef(false);
+  const subscribedMatchIdsRef = useRef<Set<string>>(new Set<string>());
+  const onMessageRef = useRef(onMessage);
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   const normalizeId = (matchId: string | number) => String(matchId);
 
@@ -29,13 +35,42 @@ export const useWebSocket = (
     }
   }, []);
 
+  // Cleanup helper to safely close a socket without triggering its close/error listeners
+  const cleanupCurrentSocket = useCallback((code = 1000, reason = "Normal closure") => {
+    if (ws.current) {
+      const socket = ws.current;
+      ws.current = null;
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      try {
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+          socket.close(code, reason);
+        }
+      } catch {
+        // Ignore closing errors on already closed socket
+      }
+    }
+  }, []);
+
   // Core connect function
   const initConnection = useCallback(() => {
-    // Cleanup previous connection
-    if (ws.current) {
-      isIntentionalClose.current = true;
-      ws.current.close();
+    if (isUnmounted.current) return;
+
+    // Clear any pending reconnect timers
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
     }
+
+    // Do not reconnect if already open or connecting
+    if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    // Safely cleanup previous socket if any
+    cleanupCurrentSocket(1000, "Reconnecting");
 
     setStatus(reconnectAttempts.current > 0 ? 'reconnecting' : 'connecting');
     isIntentionalClose.current = false;
@@ -48,6 +83,7 @@ export const useWebSocket = (
       ws.current = socket;
 
       socket.onopen = () => {
+        if (isUnmounted.current || ws.current !== socket) return;
         setStatus('connected');
         reconnectAttempts.current = 0;
         if (subscribedMatchIdsRef.current.size > 0) {
@@ -63,56 +99,60 @@ export const useWebSocket = (
       };
 
       socket.onmessage = (event) => {
+        if (isUnmounted.current || ws.current !== socket) return;
         try {
           const data = JSON.parse(event.data);
-          onMessage(data);
+          onMessageRef.current(data);
         } catch (e) {
           console.error('[WebSocket] Failed to parse message:', e);
         }
       };
 
-      socket.onerror = (event) => {
-        // WebSocket error events are generic in browsers and don't contain descriptive messages.
-        // We log it to indicate an issue occurred.
+      socket.onerror = () => {
+        if (isUnmounted.current || ws.current !== socket) return;
         console.warn('[WebSocket] Connection error occurred');
-        
-        // Only set error status if we were connected; otherwise let onclose handle it
-        if (ws.current?.readyState === WebSocket.OPEN) {
-             setStatus('error');
+        if (socket.readyState === WebSocket.OPEN) {
+          setStatus('error');
         }
       };
 
       socket.onclose = (event) => {
-        if (!isIntentionalClose.current) {
+        if (isUnmounted.current || ws.current !== socket || isIntentionalClose.current) {
           setStatus('disconnected');
-          
-          // Exponential backoff for real reconnection attempts
-          const delay = Math.min(
-            INITIAL_RECONNECT_DELAY * (2 ** reconnectAttempts.current),
-            MAX_RECONNECT_DELAY
-          );
-          
-          console.log(`[WebSocket] Disconnected (Code: ${event.code}). Reconnecting in ${delay}ms...`);
-          
-          reconnectTimeout.current = setTimeout(() => {
+          return;
+        }
+
+        setStatus('disconnected');
+        
+        // Exponential backoff for real reconnection attempts
+        const delay = Math.min(
+          INITIAL_RECONNECT_DELAY * (2 ** reconnectAttempts.current),
+          MAX_RECONNECT_DELAY
+        );
+        
+        console.log(`[WebSocket] Disconnected (Code: ${event.code}). Reconnecting in ${delay}ms...`);
+        
+        reconnectTimeout.current = setTimeout(() => {
+          if (!isUnmounted.current) {
             reconnectAttempts.current += 1;
             initConnection();
-          }, delay);
-        } else {
-            // If closed intentionally, just set status
-            setStatus('disconnected');
-        }
+          }
+        }, delay);
       };
 
     } catch (e) {
       console.error('[WebSocket] Connection creation failed:', e);
       setStatus('error');
     }
-  }, [onMessage]);
+  }, [cleanupCurrentSocket]);
 
   // Public connect method
   const connectGlobal = useCallback(() => {
-    if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
+    if (isUnmounted.current) return;
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
+    }
     reconnectAttempts.current = 0;
     if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
       return;
@@ -137,27 +177,27 @@ export const useWebSocket = (
   // Public disconnect method
   const disconnect = useCallback(() => {
     isIntentionalClose.current = true;
-    
-    if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-    
-    if (ws.current) {
-      ws.current.close();
-      ws.current = null;
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
     }
-    
+    cleanupCurrentSocket(1000, "User disconnected");
     setStatus('disconnected');
-  }, []);
+  }, [cleanupCurrentSocket]);
 
   // Cleanup on unmount
   useEffect(() => {
+    isUnmounted.current = false;
     return () => {
+      isUnmounted.current = true;
       isIntentionalClose.current = true;
-      if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-      if (ws.current) {
-        ws.current.close();
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
+        reconnectTimeout.current = null;
       }
+      cleanupCurrentSocket(1000, "Component unmounted");
     };
-  }, []);
+  }, [cleanupCurrentSocket]);
 
   return { status, connectGlobal, subscribeMatch, unsubscribeMatch, disconnect };
 };

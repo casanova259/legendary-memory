@@ -241,7 +241,7 @@ export function attachWebSocketServer(server) {
                 const decision = await wsArcjet.protect(req);
 
                 if (decision.isDenied()) {
-                    const code = decision.reason.isRateLimit() ? 1013 : 1008;
+                    const code = 1008; // RFC 6455 Policy Violation (standard code supported by browsers)
                     const reason = decision.reason.isRateLimit()
                         ? "Rate limit exceeded"
                         : "Access Denied";
