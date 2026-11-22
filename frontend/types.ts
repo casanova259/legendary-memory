@@ -89,6 +89,11 @@ export interface WSMessageUnsubscribedAll {
   type: 'unsubscribed_all';
 }
 
+export interface WSMessageMatchCreated {
+  type: 'match_created';
+  data: Match;
+}
+
 export type WSMessage =
   | WSMessageCommentary
   | WSMessageScore
@@ -99,7 +104,8 @@ export type WSMessage =
   | WSMessageUnsubscribed
   | WSMessageSubscriptions
   | WSMessageSubscribedAll
-  | WSMessageUnsubscribedAll;
+  | WSMessageUnsubscribedAll
+  | WSMessageMatchCreated;
 
 export type UserRole = 'viewer' | 'admin' | 'scorer';
 

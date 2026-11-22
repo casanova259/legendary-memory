@@ -14,6 +14,16 @@ interface AdminPanelProps {
   onRolePromoted?: () => void;
 }
 
+function toLocalDatetimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   getToken,
   currentRole,
@@ -36,11 +46,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [sport, setSport] = useState('Football');
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
-  const [startTime, setStartTime] = useState(new Date().toISOString().slice(0, 16));
-  const [endTime, setEndTime] = useState(
-    new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
+  // Default to 5 minutes ago and +2 hours so match starts as LIVE
+  const [startTime, setStartTime] = useState(() =>
+    toLocalDatetimeString(new Date(Date.now() - 5 * 60 * 1000))
+  );
+  const [endTime, setEndTime] = useState(() =>
+    toLocalDatetimeString(new Date(Date.now() + 2 * 60 * 60 * 1000))
   );
   const [isSubmittingMatch, setIsSubmittingMatch] = useState(false);
+
+  const applyTimePreset = (type: 'live' | 'scheduled' | 'finished') => {
+    if (type === 'live') {
+      setStartTime(toLocalDatetimeString(new Date(Date.now() - 5 * 60 * 1000)));
+      setEndTime(toLocalDatetimeString(new Date(Date.now() + 2 * 60 * 60 * 1000)));
+    } else if (type === 'scheduled') {
+      setStartTime(toLocalDatetimeString(new Date(Date.now() + 60 * 60 * 1000)));
+      setEndTime(toLocalDatetimeString(new Date(Date.now() + 3 * 60 * 60 * 1000)));
+    } else if (type === 'finished') {
+      setStartTime(toLocalDatetimeString(new Date(Date.now() - 3 * 60 * 60 * 1000)));
+      setEndTime(toLocalDatetimeString(new Date(Date.now() - 60 * 60 * 1000)));
+    }
+  };
+
+  const computedStatus = (() => {
+    try {
+      const now = new Date();
+      const s = new Date(startTime);
+      const e = new Date(endTime);
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
+      if (now < s) return 'scheduled';
+      if (now >= e) return 'finished';
+      return 'live';
+    } catch {
+      return null;
+    }
+  })();
 
   // Users State
   const [userList, setUserList] = useState<AppUser[]>([]);
@@ -88,7 +128,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const token = await getToken();
       if (!token) throw new Error('Not authenticated');
 
-      await createMatch(token, {
+      const res = await createMatch(token, {
         sport,
         homeTeam: homeTeam.trim(),
         awayTeam: awayTeam.trim(),
@@ -96,10 +136,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         endTime: new Date(endTime).toISOString(),
       });
 
-      setSuccessMsg(`Match "${homeTeam} vs ${awayTeam}" created successfully!`);
+      const createdStatus = res.data?.status || computedStatus || 'live';
+      const statusIcon = createdStatus === 'live' ? '🔴 LIVE' : createdStatus === 'scheduled' ? '📅 SCHEDULED' : '🏁 FINISHED';
+      setSuccessMsg(`Match "${homeTeam} vs ${awayTeam}" created successfully! Status: ${statusIcon}`);
       setHomeTeam('');
       setAwayTeam('');
-      setTimeout(() => setSuccessMsg(null), 4000);
+      applyTimePreset('live');
+      setTimeout(() => setSuccessMsg(null), 5000);
       onMatchCreated();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to create match');
@@ -238,6 +281,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 placeholder="e.g. Barcelona"
                 className="w-full text-xs p-2.5 border-2 border-black rounded-lg"
               />
+            </div>
+          </div>
+
+          {/* Time Presets & Live Status Preview */}
+          <div className="bg-white/80 border-2 border-black rounded-xl p-3 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-gray-700">Quick Match Status Presets:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyTimePreset('live')}
+                  className="px-2.5 py-1 text-xs font-bold bg-red-100 text-red-800 border border-red-500 rounded-lg hover:bg-red-200 transition-all cursor-pointer"
+                >
+                  🔴 Start as LIVE Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTimePreset('scheduled')}
+                  className="px-2.5 py-1 text-xs font-bold bg-blue-100 text-blue-800 border border-blue-500 rounded-lg hover:bg-blue-200 transition-all cursor-pointer"
+                >
+                  📅 Scheduled (in 1hr)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTimePreset('finished')}
+                  className="px-2.5 py-1 text-xs font-bold bg-gray-100 text-gray-800 border border-gray-400 rounded-lg hover:bg-gray-200 transition-all cursor-pointer"
+                >
+                  🏁 Finished
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs pt-1 border-t border-gray-200">
+              <span className="font-bold text-gray-600">Calculated Match Status:</span>
+              {computedStatus === 'live' && (
+                <span className="bg-red-500 text-white font-black px-2 py-0.5 rounded-full text-[11px] flex items-center gap-1 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                  LIVE NOW 🔴
+                </span>
+              )}
+              {computedStatus === 'scheduled' && (
+                <span className="bg-blue-600 text-white font-black px-2 py-0.5 rounded-full text-[11px]">
+                  SCHEDULED 📅
+                </span>
+              )}
+              {computedStatus === 'finished' && (
+                <span className="bg-gray-600 text-white font-black px-2 py-0.5 rounded-full text-[11px]">
+                  FINISHED 🏁 (Past match)
+                </span>
+              )}
+              {computedStatus === 'finished' && (
+                <span className="text-[11px] text-amber-700 font-medium">
+                  ⚠️ End time is in the past; select &quot;Start as LIVE Now&quot; if this match is currently playing!
+                </span>
+              )}
             </div>
           </div>
 

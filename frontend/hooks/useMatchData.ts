@@ -55,6 +55,25 @@ export const useMatchData = (): UseMatchData => {
           })
         );
         break;
+      case "match_created": {
+        const newMatch = msg.data;
+        if (!newMatch) break;
+        setMatches((prevMatches) => {
+          if (prevMatches.some((m) => m.id == newMatch.id)) {
+            return prevMatches;
+          }
+          return [newMatch, ...prevMatches];
+        });
+        setNewMatchesCount((prev) => prev + 1);
+        if (newMatchesTimeoutRef.current) {
+          clearTimeout(newMatchesTimeoutRef.current);
+        }
+        newMatchesTimeoutRef.current = setTimeout(() => {
+          setNewMatchesCount(0);
+          newMatchesTimeoutRef.current = null;
+        }, 6000);
+        break;
+      }
       case "commentary": {
         if (
           latestMatchIdRef.current == null ||
