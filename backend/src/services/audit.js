@@ -50,3 +50,20 @@ export async function getMatchAuditLogs(matchId, { limit = 50, offset = 0 } = {}
         .limit(Math.min(limit, 100))
         .offset(Math.max(offset, 0));
 }
+
+/**
+ * Retrieve all audit logs globally.
+ */
+export async function getAllAuditLogs({ matchId = null, limit = 50, offset = 0 } = {}) {
+    let query = db.select().from(auditLogs);
+    if (matchId) {
+        const numericId = Number(matchId);
+        if (Number.isInteger(numericId) && numericId > 0) {
+            query = query.where(eq(auditLogs.matchId, numericId));
+        }
+    }
+    return await query
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(Math.min(limit, 100))
+        .offset(Math.max(offset, 0));
+}

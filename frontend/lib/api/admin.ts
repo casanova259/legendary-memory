@@ -9,7 +9,46 @@ import {
   UserListResponse,
   UserRole,
   ApiResponse,
+  Innings,
+  ScoringEvent,
 } from '../../types';
+
+export async function fetchAdminMatches(
+  tokenOrProvider: string | TokenProvider,
+  params?: { limit?: number; offset?: number }
+): Promise<ApiResponse<Array<Match & { activeAssignment?: MatchAssignment | null }>>> {
+  const options =
+    typeof tokenOrProvider === 'string'
+      ? { token: tokenOrProvider, params }
+      : { getToken: tokenOrProvider, params };
+
+  return http.get<ApiResponse<Array<Match & { activeAssignment?: MatchAssignment | null }>>>(
+    '/api/admin/matches',
+    options
+  );
+}
+
+export async function fetchAdminMatchMonitoring(
+  tokenOrProvider: string | TokenProvider,
+  matchId: number | string
+): Promise<ApiResponse<{
+  match: Match;
+  assignment?: MatchAssignment | null;
+  innings: Innings[];
+  recentEvents: ScoringEvent[];
+}>> {
+  const options =
+    typeof tokenOrProvider === 'string'
+      ? { token: tokenOrProvider }
+      : { getToken: tokenOrProvider };
+
+  return http.get<ApiResponse<{
+    match: Match;
+    assignment?: MatchAssignment | null;
+    innings: Innings[];
+    recentEvents: ScoringEvent[];
+  }>>(`/api/scorer/matches/${matchId}`, options);
+}
 
 export async function fetchAdminDashboard(
   tokenOrProvider: string | TokenProvider

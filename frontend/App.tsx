@@ -11,6 +11,7 @@ import { UnauthorizedPage } from './pages/public/UnauthorizedPage';
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminMatchesPage } from './pages/admin/AdminMatchesPage';
+import { AdminMatchDetailsPage } from './pages/admin/AdminMatchDetailsPage';
 import { AdminScorersPage } from './pages/admin/AdminScorersPage';
 import { AdminAssignmentsPage } from './pages/admin/AdminAssignmentsPage';
 import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
@@ -28,6 +29,7 @@ const AppRoutes: React.FC = () => {
     pathname === '/' ||
     pathname === '/admin' ||
     pathname === '/admin/matches' ||
+    pathname.startsWith('/admin/matches/') ||
     pathname === '/admin/scorers' ||
     pathname === '/admin/assignments' ||
     pathname === '/admin/audit-logs' ||
@@ -49,6 +51,9 @@ const AppRoutes: React.FC = () => {
       </Route>
       <Route path="/admin/matches" exact>
         <AdminMatchesPage />
+      </Route>
+      <Route path="/admin/matches/:id">
+        <AdminMatchDetailsPage />
       </Route>
       <Route path="/admin/scorers" exact>
         <AdminScorersPage />

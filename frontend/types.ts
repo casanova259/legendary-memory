@@ -199,8 +199,12 @@ export interface UserListResponse {
 export interface AdminDashboardStats {
   totalMatches: number;
   liveMatches: number;
+  completedMatches?: number;
+  scheduledMatches?: number;
   totalScorers: number;
-  activeAssignments: number;
+  activeScorers?: number;
+  totalUsers?: number;
+  activeAssignments?: number;
 }
 
 export interface ScorerItem {
@@ -227,10 +231,13 @@ export interface MatchAssignment {
 
 export interface AuditLogItem {
   id: number;
-  actorId: number;
+  actorId?: number | null;
   action: string;
   matchId?: number | null;
-  details: Record<string, unknown>;
+  targetUserId?: number | null;
+  eventId?: number | null;
+  reason?: string | null;
+  details?: Record<string, unknown> | null;
   createdAt: string;
   actor?: {
     id: number;

@@ -39,7 +39,7 @@ import {
     getMatchEvents,
     getMatchInnings,
 } from "../services/scoring.js";
-import { getMatchAuditLogs } from "./../services/audit.js";
+import { getMatchAuditLogs, getAllAuditLogs } from "./../services/audit.js";
 import { db } from "../db/db.js";
 import { matches, users, matchAssignments } from "../db/schema.js";
 import { count, desc, eq, or, and } from "drizzle-orm";
@@ -483,7 +483,7 @@ adminRouter.get("/matches/:id/assignments", async (req, res, next) => {
  * POST /matches/:id/status
  * Administrative match status override with mandatory audit reason.
  */
-adminRouter.post("/matches/:id/status", async (req, res, next) => {
+const handleStatusOverride = async (req, res, next) => {
     const paramParsed = matchIdParamSchema.safeParse(req.params);
     if (!paramParsed.success) {
         return res.status(400).json({
@@ -519,7 +519,10 @@ adminRouter.post("/matches/:id/status", async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-});
+};
+
+adminRouter.post("/matches/:id/status", handleStatusOverride);
+adminRouter.post("/matches/:id/status-override", handleStatusOverride);
 
 /**
  * POST /matches/:id/events/:eventId/correct
@@ -577,10 +580,10 @@ adminRouter.post("/matches/:id/events/:eventId/correct", async (req, res, next) 
 });
 
 /**
- * GET /matches/:id/audit
+ * GET /matches/:id/audit & GET /matches/:id/audit-logs
  * Retrieve audit log history for a match.
  */
-adminRouter.get("/matches/:id/audit", async (req, res, next) => {
+const handleMatchAuditLogs = async (req, res, next) => {
     const paramParsed = matchIdParamSchema.safeParse(req.params);
     if (!paramParsed.success) {
         return res.status(400).json({
@@ -595,4 +598,23 @@ adminRouter.get("/matches/:id/audit", async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-});
+};
+
+adminRouter.get("/matches/:id/audit", handleMatchAuditLogs);
+adminRouter.get("/matches/:id/audit-logs", handleMatchAuditLogs);
+
+/**
+ * GET /audit-logs & GET /audit
+ * Retrieve all audit log history across matches.
+ */
+const handleAllAuditLogs = async (req, res, next) => {
+    try {
+        const logs = await getAllAuditLogs(req.query);
+        return res.status(200).json({ data: logs });
+    } catch (error) {
+        next(error);
+    }
+};
+
+adminRouter.get("/audit-logs", handleAllAuditLogs);
+adminRouter.get("/audit", handleAllAuditLogs);

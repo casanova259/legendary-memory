@@ -16,6 +16,8 @@ describe('Frontend Architecture: 1. Client-Side Router & Path Matching', () => {
     assert.equal(matchPath('/admin/scorers', '/admin/scorers', true).matches, true);
     assert.equal(matchPath('/admin/assignments', '/admin/assignments', true).matches, true);
     assert.equal(matchPath('/admin/audit-logs', '/admin/audit-logs', true).matches, true);
+    assert.equal(matchPath('/admin/matches/:id', '/admin/matches/99', true).matches, true);
+    assert.equal(matchPath('/admin/matches/:id', '/admin/matches/99', true).params.id, '99');
   });
 
   it('should reject mismatched paths on exact match', () => {
