@@ -32,6 +32,18 @@ describe('Frontend Architecture: 1. Client-Side Router & Path Matching', () => {
     assert.equal(res.params.id, '142');
   });
 
+  it('should match Phase 3 Scorer Workspace routes', () => {
+    assert.equal(matchPath('/scorer', '/scorer', true).matches, true);
+    assert.equal(matchPath('/scorer/matches', '/scorer/matches', true).matches, true);
+    assert.equal(matchPath('/scorer/matches/:id', '/scorer/matches/142', true).matches, true);
+    assert.equal(matchPath('/scorer/matches/:id/setup', '/scorer/matches/142/setup', true).matches, true);
+    assert.equal(matchPath('/scorer/matches/:id/setup', '/scorer/matches/142/setup', true).params.id, '142');
+    assert.equal(matchPath('/scorer/matches/:id/live', '/scorer/matches/142/live', true).matches, true);
+    assert.equal(matchPath('/scorer/matches/:id/live', '/scorer/matches/142/live', true).params.id, '142');
+    assert.equal(matchPath('/scorer/matches/:id/scorecard', '/scorer/matches/142/scorecard', true).matches, true);
+    assert.equal(matchPath('/scorer/matches/:id/scorecard', '/scorer/matches/142/scorecard', true).params.id, '142');
+  });
+
   it('should extract dynamic string ID parameters', () => {
     const res = matchPath('/scorer/matches/:id', '/scorer/matches/ind-vs-aus-2026', true);
     assert.equal(res.matches, true);
@@ -115,5 +127,114 @@ describe('Frontend Architecture: 4. WebSocket Client Architecture', () => {
     const unsub = client.addStatusListener((s) => statuses.push(s));
     assert.ok(statuses.includes('disconnected'));
     unsub();
+  });
+});
+
+// Test 5: Cricket Calculations & Event Aggregations
+import {
+  formatOvers,
+  calculateRunRate,
+  calculateRequiredRunRate,
+  deriveBatterStats,
+  deriveBowlerStats,
+  deriveFallOfWickets,
+  deriveExtrasBreakdown,
+  generateIdempotencyKey,
+} from '../lib/cricket/calculations.ts';
+
+describe('Frontend Architecture: 5. Cricket Calculations & Statistics', () => {
+  it('formats legal balls into overs correctly', () => {
+    assert.equal(formatOvers(0), '0.0');
+    assert.equal(formatOvers(5), '0.5');
+    assert.equal(formatOvers(6), '1.0');
+    assert.equal(formatOvers(14), '2.2');
+    assert.equal(formatOvers(120), '20.0');
+  });
+
+  it('calculates CRR and RRR correctly', () => {
+    assert.equal(calculateRunRate(0, 0), '0.00');
+    assert.equal(calculateRunRate(48, 36), '8.00'); // 48 runs in 6 overs = 8.00
+    assert.equal(calculateRequiredRunRate(180, 120, 20, 90), '12.00'); // 60 runs in 5 overs (30 balls) = 12.00
+  });
+
+  it('generates unique, collision-resistant idempotency keys', () => {
+    const k1 = generateIdempotencyKey(1, 10);
+    const k2 = generateIdempotencyKey(1, 10);
+    assert.notEqual(k1, k2);
+    assert.ok(k1.startsWith('sc_1_m_10_'));
+  });
+
+  it('derives accurate batter and bowler statistics from scoring events', () => {
+    const sampleEvents = [
+      {
+        id: 1,
+        matchId: 10,
+        inningsId: 1,
+        eventSequence: 1,
+        eventType: 'ball',
+        runsOffBat: 4,
+        extrasType: 'none',
+        extrasRuns: 0,
+        totalRuns: 4,
+        isLegalDelivery: true,
+        batter: 'Rohit',
+        bowler: 'Starc',
+        isReversed: false,
+      },
+      {
+        id: 2,
+        matchId: 10,
+        inningsId: 1,
+        eventSequence: 2,
+        eventType: 'extra',
+        runsOffBat: 0,
+        extrasType: 'wide',
+        extrasRuns: 1,
+        totalRuns: 1,
+        isLegalDelivery: false,
+        batter: 'Rohit',
+        bowler: 'Starc',
+        isReversed: false,
+      },
+      {
+        id: 3,
+        matchId: 10,
+        inningsId: 1,
+        eventSequence: 3,
+        eventType: 'wicket',
+        runsOffBat: 0,
+        extrasType: 'none',
+        extrasRuns: 0,
+        totalRuns: 0,
+        isLegalDelivery: true,
+        wicketType: 'bowled',
+        dismissedPlayer: 'Rohit',
+        batter: 'Rohit',
+        bowler: 'Starc',
+        isReversed: false,
+      },
+    ];
+
+    const bStats = deriveBatterStats(sampleEvents);
+    assert.equal(bStats['Rohit'].runs, 4);
+    assert.equal(bStats['Rohit'].balls, 2); // 2 balls faced (wide excluded)
+    assert.equal(bStats['Rohit'].fours, 1);
+    assert.equal(bStats['Rohit'].isOut, true);
+    assert.equal(bStats['Rohit'].strikeRate, '200.0');
+
+    const bwStats = deriveBowlerStats(sampleEvents);
+    assert.equal(bwStats['Starc'].legalBalls, 2);
+    assert.equal(bwStats['Starc'].overs, '0.2');
+    assert.equal(bwStats['Starc'].runsConceded, 5); // 4 off bat + 1 wide
+    assert.equal(bwStats['Starc'].wickets, 1);
+
+    const fow = deriveFallOfWickets(sampleEvents);
+    assert.equal(fow.length, 1);
+    assert.equal(fow[0].score, 5);
+    assert.equal(fow[0].wicketNumber, 1);
+
+    const extras = deriveExtrasBreakdown(sampleEvents);
+    assert.equal(extras.wides, 1);
+    assert.equal(extras.total, 1);
   });
 });

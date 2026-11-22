@@ -249,8 +249,11 @@ export interface AuditLogItem {
 
 // Scorer Specific Types
 export interface ScorerDashboardStats {
-  activeMatchesCount: number;
-  completedMatchesCount: number;
+  totalAssigned: number;
+  liveMatches: number;
+  scheduledMatches: number;
+  completedMatches: number;
+  recentMatches?: Match[];
 }
 
 export interface Innings {
@@ -273,19 +276,21 @@ export interface ScoringEvent {
   matchId: number;
   inningsId: number;
   eventSequence: number;
-  eventType: 'ball' | 'wicket' | 'boundary' | 'extra' | 'over_end';
+  eventType: 'ball' | 'wicket' | 'boundary' | 'extra' | 'over_end' | 'innings_completed' | 'match_completed' | 'correction';
   runsOffBat: number;
   extrasType: 'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'penalty';
   extrasRuns: number;
   totalRuns: number;
   isLegalDelivery: boolean;
   wicketType?: string;
-  dismissedPlayer?: string;
-  batter?: string;
-  bowler?: string;
+  dismissedPlayer?: string | null;
+  batter?: string | null;
+  bowler?: string | null;
+  scorerId?: number | null;
   idempotencyKey?: string;
   isReversed?: boolean;
-  reversalReason?: string;
+  reversedBy?: number | null;
+  reversalReason?: string | null;
   createdAt: string;
 }
 
@@ -293,6 +298,7 @@ export interface AssignedMatchDetails {
   match: Match;
   assignment: MatchAssignment;
   innings: Innings[];
+  recentEvents?: ScoringEvent[];
   currentInnings?: Innings | null;
 }
 

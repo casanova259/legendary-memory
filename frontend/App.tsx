@@ -19,7 +19,10 @@ import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 // Scorer Pages
 import { ScorerDashboardPage } from './pages/scorer/ScorerDashboardPage';
 import { ScorerMatchesPage } from './pages/scorer/ScorerMatchesPage';
-import { ScorerWorkspacePage } from './pages/scorer/ScorerWorkspacePage';
+import { ScorerMatchOverviewPage } from './pages/scorer/ScorerMatchOverviewPage';
+import { ScorerMatchSetupPage } from './pages/scorer/ScorerMatchSetupPage';
+import { ScorerLiveConsolePage } from './pages/scorer/ScorerLiveConsolePage';
+import { ScorerScorecardPage } from './pages/scorer/ScorerScorecardPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -72,8 +75,17 @@ const AppRoutes: React.FC = () => {
       <Route path="/scorer/matches" exact>
         <ScorerMatchesPage />
       </Route>
-      <Route path="/scorer/matches/:id">
-        <ScorerWorkspacePage />
+      <Route path="/scorer/matches/:id" exact>
+        <ScorerMatchOverviewPage />
+      </Route>
+      <Route path="/scorer/matches/:id/setup" exact>
+        <ScorerMatchSetupPage />
+      </Route>
+      <Route path="/scorer/matches/:id/live" exact>
+        <ScorerLiveConsolePage />
+      </Route>
+      <Route path="/scorer/matches/:id/scorecard" exact>
+        <ScorerScorecardPage />
       </Route>
 
       {/* Unauthorized Access */}

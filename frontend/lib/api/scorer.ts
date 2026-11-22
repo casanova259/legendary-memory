@@ -112,7 +112,12 @@ export async function completeMatch(
 export async function createInnings(
   tokenOrProvider: string | TokenProvider,
   matchId: string | number,
-  payload: { battingTeam: string; bowlingTeam: string; target?: number }
+  payload: {
+    inningsNumber: number;
+    battingTeam: string;
+    bowlingTeam?: string;
+    target?: number | null;
+  }
 ): Promise<ApiResponse<Innings>> {
   const options =
     typeof tokenOrProvider === 'string'
@@ -130,24 +135,36 @@ export async function recordScoringEvent(
   tokenOrProvider: string | TokenProvider,
   matchId: string | number,
   payload: {
-    inningsId?: number;
-    eventType: 'ball' | 'wicket' | 'boundary' | 'extra' | 'over_end';
+    eventType?: 'ball' | 'wicket' | 'extra' | 'innings_completed' | 'match_completed';
     runsOffBat?: number;
     extrasType?: 'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'penalty';
     extrasRuns?: number;
+    isLegalDelivery?: boolean;
     wicketType?: string;
-    dismissedPlayer?: string;
-    batter?: string;
-    bowler?: string;
-    idempotencyKey?: string;
+    dismissedPlayer?: string | null;
+    batter?: string | null;
+    bowler?: string | null;
+    idempotencyKey: string;
   }
-): Promise<ApiResponse<{ event: ScoringEvent; innings: Innings; isIdempotentReplay: boolean }>> {
+): Promise<ApiResponse<{
+  event: ScoringEvent;
+  innings: Innings;
+  match: Match;
+  commentary?: unknown;
+  isIdempotentReplay: boolean;
+}>> {
   const options =
     typeof tokenOrProvider === 'string'
       ? { token: tokenOrProvider }
       : { getToken: tokenOrProvider };
 
-  return http.post<ApiResponse<{ event: ScoringEvent; innings: Innings; isIdempotentReplay: boolean }>>(
+  return http.post<ApiResponse<{
+    event: ScoringEvent;
+    innings: Innings;
+    match: Match;
+    commentary?: unknown;
+    isIdempotentReplay: boolean;
+  }>>(
     `/api/scorer/matches/${matchId}/events`,
     payload,
     options
@@ -157,7 +174,11 @@ export async function recordScoringEvent(
 export async function fetchScoringEvents(
   tokenOrProvider: string | TokenProvider,
   matchId: string | number,
-  inningsId?: number
+  params?: {
+    inningsId?: number;
+    limit?: number;
+    offset?: number;
+  }
 ): Promise<ApiResponse<ScoringEvent[]>> {
   const options =
     typeof tokenOrProvider === 'string'
@@ -168,7 +189,7 @@ export async function fetchScoringEvents(
     `/api/scorer/matches/${matchId}/events`,
     {
       ...options,
-      params: inningsId ? { inningsId } : undefined,
+      params,
     }
   );
 }
