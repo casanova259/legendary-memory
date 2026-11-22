@@ -6,15 +6,16 @@ import {
   useAuth,
 } from '@clerk/react';
 import { AppUser, UserRole } from '../types';
+import { Link } from '../lib/router';
 
 interface AuthBarProps {
   appUser: AppUser | null;
   isLoadingUser: boolean;
   activeRole: UserRole | null;
-  onToggleAdmin: () => void;
-  onToggleScorer: () => void;
-  isAdminOpen: boolean;
-  isScorerOpen: boolean;
+  onToggleAdmin?: () => void;
+  onToggleScorer?: () => void;
+  isAdminOpen?: boolean;
+  isScorerOpen?: boolean;
 }
 
 export const AuthBar: React.FC<AuthBarProps> = ({
@@ -23,8 +24,8 @@ export const AuthBar: React.FC<AuthBarProps> = ({
   activeRole,
   onToggleAdmin,
   onToggleScorer,
-  isAdminOpen,
-  isScorerOpen,
+  isAdminOpen = false,
+  isScorerOpen = false,
 }) => {
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -65,52 +66,77 @@ export const AuthBar: React.FC<AuthBarProps> = ({
       {isLoadingUser ? (
         <span className="text-xs font-mono text-gray-600 animate-pulse">Syncing role...</span>
       ) : (
-        <button
-          onClick={onToggleAdmin}
-          title="Click to open Admin & Role panel"
-          className="flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all"
-        >
+        <div className="flex items-center gap-1.5">
           {activeRole && (
             <span
               className={`text-[11px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full border-2 shadow-hard-sm ${
                 roleColors[activeRole] || roleColors.viewer
               }`}
             >
-              {activeRole} ⚙️
+              {activeRole}
             </span>
           )}
-        </button>
+        </div>
       )}
 
-      {/* Scorer Controls Toggle (Admins and Scorers) */}
+      {/* Scorer Workspace Link & Toggle */}
       {(activeRole === 'admin' || activeRole === 'scorer') && (
-        <button
-          onClick={onToggleScorer}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
-            isScorerOpen ? 'bg-emerald-400 text-black' : 'bg-white hover:bg-emerald-50'
-          }`}
-        >
-          {isScorerOpen ? '✕ Close Scorer' : '⚡ Scorer Desk'}
-        </button>
+        <div className="flex items-center gap-1">
+          <Link
+            to="/scorer"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black bg-emerald-400 text-black hover:bg-emerald-300 transition-all shadow-hard-sm"
+          >
+            ⚡ Scorer Workspace
+          </Link>
+          {onToggleScorer && (
+            <button
+              onClick={onToggleScorer}
+              title="Quick Toggle Scorer Drawer"
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
+                isScorerOpen ? 'bg-emerald-600 text-white' : 'bg-white hover:bg-emerald-50'
+              }`}
+            >
+              {isScorerOpen ? '✕' : '▼'}
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Admin Console Toggle (Always visible when signed in) */}
-      <button
-        onClick={onToggleAdmin}
-        className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
-          isAdminOpen
-            ? 'bg-brand-blue text-white'
-            : activeRole === 'admin'
-            ? 'bg-white hover:bg-blue-50 text-brand-dark'
-            : 'bg-white hover:bg-yellow-100 text-brand-dark border-dashed'
-        }`}
-      >
-        {isAdminOpen
-          ? '✕ Close Admin'
-          : activeRole === 'admin'
-          ? '🛠️ Admin Console'
-          : '🛠️ Admin / Setup'}
-      </button>
+      {/* Admin Panel Link & Toggle */}
+      {activeRole === 'admin' ? (
+        <div className="flex items-center gap-1">
+          <Link
+            to="/admin"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black bg-brand-blue text-brand-dark hover:bg-sky-200 transition-all shadow-hard-sm"
+          >
+            🛠️ Admin Panel
+          </Link>
+          {onToggleAdmin && (
+            <button
+              onClick={onToggleAdmin}
+              title="Quick Toggle Admin Drawer"
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
+                isAdminOpen ? 'bg-sky-700 text-white' : 'bg-white hover:bg-blue-50'
+              }`}
+            >
+              {isAdminOpen ? '✕' : '▼'}
+            </button>
+          )}
+        </div>
+      ) : (
+        onToggleAdmin && (
+          <button
+            onClick={onToggleAdmin}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-black transition-all shadow-hard-sm cursor-pointer ${
+              isAdminOpen
+                ? 'bg-brand-blue text-white'
+                : 'bg-white hover:bg-yellow-100 text-brand-dark border-dashed'
+            }`}
+          >
+            {isAdminOpen ? '✕ Close Setup' : '🛠️ Setup'}
+          </button>
+        )
+      )}
 
       {/* User profile & email */}
       <div className="flex items-center gap-2 bg-white/60 border border-black/20 rounded-xl px-2.5 py-1">

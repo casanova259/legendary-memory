@@ -94,6 +94,66 @@ export interface WSMessageMatchCreated {
   data: Match;
 }
 
+export interface WSMessageMatchStarted {
+  type: 'match_started';
+  data: {
+    matchId: string | number;
+    status: string;
+    inningsId?: number;
+  };
+}
+
+export interface WSMessageMatchPaused {
+  type: 'match_paused';
+  data: {
+    matchId: string | number;
+    status: string;
+  };
+}
+
+export interface WSMessageMatchResumed {
+  type: 'match_resumed';
+  data: {
+    matchId: string | number;
+    status: string;
+  };
+}
+
+export interface WSMessageMatchCompleted {
+  type: 'match_completed';
+  data: {
+    matchId: string | number;
+    status: string;
+  };
+}
+
+export interface WSMessageWicketFallen {
+  type: 'wicket_fallen';
+  data: {
+    matchId: string | number;
+    inningsId: number;
+    wicketType: string;
+    dismissedPlayer?: string;
+    totalWickets: number;
+  };
+}
+
+export interface WSMessageScoreCorrected {
+  type: 'score_corrected';
+  data: {
+    matchId: string | number;
+    inningsId: number;
+    reversedEventId: number;
+    reason: string;
+    innings?: {
+      totalRuns: number;
+      wickets: number;
+      legalBalls: number;
+      overs: string;
+    };
+  };
+}
+
 export type WSMessage =
   | WSMessageCommentary
   | WSMessageScore
@@ -105,7 +165,13 @@ export type WSMessage =
   | WSMessageSubscriptions
   | WSMessageSubscribedAll
   | WSMessageUnsubscribedAll
-  | WSMessageMatchCreated;
+  | WSMessageMatchCreated
+  | WSMessageMatchStarted
+  | WSMessageMatchPaused
+  | WSMessageMatchResumed
+  | WSMessageMatchCompleted
+  | WSMessageWicketFallen
+  | WSMessageScoreCorrected;
 
 export type UserRole = 'viewer' | 'admin' | 'scorer';
 
@@ -115,16 +181,122 @@ export interface AppUser {
   email: string | null;
   displayName: string | null;
   role: UserRole;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface UserListResponse {
   data: AppUser[];
-  meta: {
+  meta?: {
     total: number;
     limit: number;
     offset: number;
+  };
+}
+
+// Admin Specific Types
+export interface AdminDashboardStats {
+  totalMatches: number;
+  liveMatches: number;
+  totalScorers: number;
+  activeAssignments: number;
+}
+
+export interface ScorerItem {
+  id: number;
+  clerkId: string;
+  email: string | null;
+  displayName: string | null;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  activeAssignmentsCount?: number;
+}
+
+export interface MatchAssignment {
+  id: number;
+  matchId: number;
+  scorerId: number;
+  assignedById: number;
+  status: 'active' | 'revoked';
+  assignedAt: string;
+  revokedAt?: string | null;
+  scorer?: ScorerItem;
+}
+
+export interface AuditLogItem {
+  id: number;
+  actorId: number;
+  action: string;
+  matchId?: number | null;
+  details: Record<string, unknown>;
+  createdAt: string;
+  actor?: {
+    id: number;
+    email: string | null;
+    displayName: string | null;
+    role: UserRole;
+  };
+}
+
+// Scorer Specific Types
+export interface ScorerDashboardStats {
+  activeMatchesCount: number;
+  completedMatchesCount: number;
+}
+
+export interface Innings {
+  id: number;
+  matchId: number;
+  inningsNumber: number;
+  battingTeam: string;
+  bowlingTeam: string;
+  totalRuns: number;
+  wickets: number;
+  legalBalls: number;
+  extras: number;
+  target?: number | null;
+  status: 'upcoming' | 'live' | 'completed';
+  overs?: string;
+}
+
+export interface ScoringEvent {
+  id: number;
+  matchId: number;
+  inningsId: number;
+  eventSequence: number;
+  eventType: 'ball' | 'wicket' | 'boundary' | 'extra' | 'over_end';
+  runsOffBat: number;
+  extrasType: 'none' | 'wide' | 'no_ball' | 'bye' | 'leg_bye' | 'penalty';
+  extrasRuns: number;
+  totalRuns: number;
+  isLegalDelivery: boolean;
+  wicketType?: string;
+  dismissedPlayer?: string;
+  batter?: string;
+  bowler?: string;
+  idempotencyKey?: string;
+  isReversed?: boolean;
+  reversalReason?: string;
+  createdAt: string;
+}
+
+export interface AssignedMatchDetails {
+  match: Match;
+  assignment: MatchAssignment;
+  innings: Innings[];
+  currentInnings?: Innings | null;
+}
+
+// Generic API response
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  meta?: {
+    total?: number;
+    limit?: number;
+    offset?: number;
   };
 }
 
