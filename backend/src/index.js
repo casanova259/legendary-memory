@@ -10,17 +10,32 @@ const HOST = process.env.HOST || "0.0.0.0";
 const server = http.createServer(app);
 
 // Attach WebSocket server
+const wsHandlers = attachWebSocketServer(server);
 const {
     broadcastMatchCreated,
     broadcastCommentary,
     broadcastMatchUpdated,
+    broadcastMatchStarted,
+    broadcastMatchPaused,
+    broadcastMatchResumed,
+    broadcastMatchCompleted,
+    broadcastWicket,
+    broadcastInningsCompleted,
+    broadcastCorrection,
     closeWebSocketServer,
     wss,
-} = attachWebSocketServer(server);
+} = wsHandlers;
 
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
 app.locals.broadcastCommentary = broadcastCommentary;
 app.locals.broadcastMatchUpdated = broadcastMatchUpdated;
+app.locals.broadcastMatchStarted = broadcastMatchStarted;
+app.locals.broadcastMatchPaused = broadcastMatchPaused;
+app.locals.broadcastMatchResumed = broadcastMatchResumed;
+app.locals.broadcastMatchCompleted = broadcastMatchCompleted;
+app.locals.broadcastWicket = broadcastWicket;
+app.locals.broadcastInningsCompleted = broadcastInningsCompleted;
+app.locals.broadcastCorrection = broadcastCorrection;
 
 // Start HTTP & WebSocket server
 server.listen(PORT, HOST, () => {

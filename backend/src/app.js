@@ -7,6 +7,7 @@ import { matchRouter } from "./routes/matches.js";
 import { commentaryRouter } from "./routes/commentary.js";
 import { authRouter } from "./routes/auth.js";
 import { adminRouter } from "./routes/admin.js";
+import { scorerRouter } from "./routes/scorer.js";
 import { webhookRouter } from "./routes/webhooks.js";
 import { securityMiddleWare } from "./arcjet.js";
 import { pool } from "./db/db.js";
@@ -145,9 +146,20 @@ app.use(securityMiddleWare());
 // 7. Business & Auth Routes
 app.use("/webhooks", webhookRouter);
 app.use("/auth", authRouter);
+
+// Admin Routes (Both /api/admin and /admin for compatibility)
+app.use("/api/admin", adminRouter);
 app.use("/admin", adminRouter);
-app.use("/matches", matchRouter);
+
+// Scorer Routes (Both /api/scorer and /scorer for convenience)
+app.use("/api/scorer", scorerRouter);
+app.use("/scorer", scorerRouter);
+
+// Match & Commentary Routes
+app.use("/api/matches/:id/commentary", commentaryRouter);
 app.use("/matches/:id/commentary", commentaryRouter);
+app.use("/api/matches", matchRouter);
+app.use("/matches", matchRouter);
 
 // 7. 404 Handler for undefined routes
 app.use((req, res) => {

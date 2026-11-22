@@ -26,7 +26,22 @@ export async function syncMatchStatus(match, dbInstance) {
     return match;
   }
 
+  // Preserve explicit lifecycle states (paused, completed, abandoned, finished, or managed live matches)
+  if (
+    match.status === "paused" ||
+    match.status === "completed" ||
+    match.status === "abandoned" ||
+    match.status === "finished" ||
+    match.currentInningsId
+  ) {
+    return match;
+  }
+
   const computed = getMatchStatus(match.startTime, match.endTime);
+  // Never revert a live match back to scheduled via time sync
+  if (match.status === "live" && computed === MATCH_STATUS.SCHEDULED) {
+    return match;
+  }
   if (computed && computed !== match.status && dbInstance) {
     try {
       await dbInstance
@@ -52,6 +67,17 @@ export async function syncMatchesStatuses(matchesList, dbInstance) {
 
   for (const match of matchesList) {
     if (!match.startTime || !match.endTime) continue;
+
+    // Preserve explicit lifecycle states
+    if (
+      match.status === "paused" ||
+      match.status === "completed" ||
+      match.status === "abandoned" ||
+      match.status === "finished"
+    ) {
+      continue;
+    }
+
     const computed = getMatchStatus(match.startTime, match.endTime, now);
 
     if (computed && computed !== match.status) {

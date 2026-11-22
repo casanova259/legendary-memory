@@ -103,6 +103,7 @@ matchRouter.post("/", requireAuth, requireRole("admin"), async (req, res, next) 
                 endTime: new Date(endTime),
                 homeScore: homeScore ?? 0,
                 awayScore: awayScore ?? 0,
+                createdById: req.auth.user.id,
             })
             .returning();
 

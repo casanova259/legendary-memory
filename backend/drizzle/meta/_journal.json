@@ -22,6 +22,13 @@
       "when": 1795242648034,
       "tag": "0002_icy_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795339051925,
+      "tag": "0003_hard_makkari",
+      "breakpoints": true
     }
   ]
 }

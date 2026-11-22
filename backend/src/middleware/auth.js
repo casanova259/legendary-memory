@@ -1,10 +1,12 @@
 import { getAuth } from "@clerk/express";
 import { syncUserFromClerk, getUserByClerkId } from "../services/user.js";
+import { isScorerAssignedToMatch } from "../services/assignment.js";
 
 /**
  * Require valid Clerk authentication.
  * Verifies token via Clerk middleware, syncs local user, and attaches req.auth = { clerkId, user }.
  * Returns 401 if missing, invalid, or expired.
+ * Returns 403 if account is marked inactive.
  */
 export async function requireAuth(req, res, next) {
     try {
@@ -35,7 +37,6 @@ export async function requireAuth(req, res, next) {
                     claims = clerkAuth.sessionClaims || {};
                 }
             } catch (err) {
-                // If getAuth throws due to missing/invalid token
                 return res.status(401).json({
                     error: "Unauthorized",
                     message: "Invalid, expired, or missing authentication token",
@@ -76,6 +77,14 @@ export async function requireAuth(req, res, next) {
             });
         }
 
+        // Account active check: inactive accounts cannot perform authenticated operations
+        if (localUser && localUser.isActive === false) {
+            return res.status(403).json({
+                error: "Forbidden",
+                message: "Account is inactive. Please contact an administrator.",
+            });
+        }
+
         // Attach verified identity and local application role to request
         req.auth = {
             clerkId: clerkUserId,
@@ -112,5 +121,56 @@ export function requireRole(...allowedRoles) {
         }
 
         return next();
+    };
+}
+
+/**
+ * Require the authenticated user to be either:
+ * 1. An administrator, OR
+ * 2. The actively assigned scorer for the match specified in req.params.id
+ */
+export function requireAssignedScorer() {
+    return async (req, res, next) => {
+        if (!req.auth || !req.auth.user) {
+            return res.status(401).json({
+                error: "Unauthorized",
+                message: "Authentication required",
+            });
+        }
+
+        const user = req.auth.user;
+
+        // Administrators have universal access to all matches
+        if (user.role === "admin") {
+            return next();
+        }
+
+        if (user.role !== "scorer") {
+            return res.status(403).json({
+                error: "Forbidden",
+                message: "Only assigned scorers or administrators can operate this match",
+            });
+        }
+
+        const matchId = Number(req.params.id);
+        if (!Number.isInteger(matchId) || matchId <= 0) {
+            return res.status(400).json({
+                error: "Invalid match ID",
+            });
+        }
+
+        try {
+            const isAssigned = await isScorerAssignedToMatch(matchId, user.id);
+            if (!isAssigned) {
+                return res.status(403).json({
+                    error: "Forbidden",
+                    message: "You are not the active assigned scorer for this match",
+                });
+            }
+
+            return next();
+        } catch (error) {
+            return next(error);
+        }
     };
 }

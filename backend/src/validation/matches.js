@@ -5,6 +5,9 @@ export const MATCH_STATUS = {
     SCHEDULED: "scheduled",
     LIVE: "live",
     FINISHED: "finished",
+    PAUSED: "paused",
+    COMPLETED: "completed",
+    ABANDONED: "abandoned",
 };
 
 export const isValidIsoDateString = (value) => {

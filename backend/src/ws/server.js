@@ -299,9 +299,41 @@ export function attachWebSocketServer(server) {
                     homeScore: match.homeScore,
                     awayScore: match.awayScore,
                 },
-     
             });
         }
+    }
+
+    function broadcastMatchStarted(match, innings) {
+        if (match?.id) knownMatchIds.add(match.id);
+        broadcastToMatch(match.id, { type: "match_started", matchId: match.id, data: { match, innings } });
+        broadcastToAll(wss, { type: "match_status_change", matchId: match.id, status: match.status });
+    }
+
+    function broadcastMatchPaused(match) {
+        broadcastToMatch(match.id, { type: "match_paused", matchId: match.id, data: { match } });
+        broadcastToAll(wss, { type: "match_status_change", matchId: match.id, status: match.status });
+    }
+
+    function broadcastMatchResumed(match) {
+        broadcastToMatch(match.id, { type: "match_resumed", matchId: match.id, data: { match } });
+        broadcastToAll(wss, { type: "match_status_change", matchId: match.id, status: match.status });
+    }
+
+    function broadcastMatchCompleted(match) {
+        broadcastToMatch(match.id, { type: "match_completed", matchId: match.id, data: { match } });
+        broadcastToAll(wss, { type: "match_status_change", matchId: match.id, status: match.status });
+    }
+
+    function broadcastWicket(matchId, data) {
+        broadcastToMatch(matchId, { type: "wicket_recorded", matchId, data });
+    }
+
+    function broadcastInningsCompleted(matchId, data) {
+        broadcastToMatch(matchId, { type: "innings_completed", matchId, data });
+    }
+
+    function broadcastCorrection(matchId, data) {
+        broadcastToMatch(matchId, { type: "event_corrected", matchId, data });
     }
 
     function closeWebSocketServer() {
@@ -322,6 +354,13 @@ export function attachWebSocketServer(server) {
         broadcastMatchCreated,
         broadcastCommentary,
         broadcastMatchUpdated,
+        broadcastMatchStarted,
+        broadcastMatchPaused,
+        broadcastMatchResumed,
+        broadcastMatchCompleted,
+        broadcastWicket,
+        broadcastInningsCompleted,
+        broadcastCorrection,
         closeWebSocketServer,
         wss,
     };
