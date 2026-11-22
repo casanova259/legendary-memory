@@ -40,13 +40,24 @@ export const useWebSocket = (
     if (ws.current) {
       const socket = ws.current;
       ws.current = null;
-      socket.onopen = null;
       socket.onmessage = null;
       socket.onerror = null;
       socket.onclose = null;
+
       try {
-        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        if (socket.readyState === WebSocket.OPEN) {
           socket.close(code, reason);
+        } else if (socket.readyState === WebSocket.CONNECTING) {
+          // Defer closing until after the handshake completes.
+          // This avoids the browser's console warning:
+          // "WebSocket is closed before the connection is established"
+          socket.onopen = () => {
+            try {
+              socket.close(code, reason);
+            } catch {
+              // Ignore
+            }
+          };
         }
       } catch {
         // Ignore closing errors on already closed socket
